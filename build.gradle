@@ -1,0 +1,77 @@
+apply plugin: "maven"
+apply plugin: "eclipse"
+apply plugin: 'java'
+apply plugin: "jacoco"
+
+sourceCompatibility = java_version
+targetCompatibility = java_version
+
+// Repositories to work with
+repositories {
+	// Local Maven Repo
+	mavenLocal()
+	mavenCentral()
+}
+
+ext {
+	testng_version = "6.14.2"
+}
+
+dependencies {
+	testCompile "org.testng:testng:${testng_version}"
+}
+
+jacoco {
+	toolVersion = "0.8.4"
+	reportsDir = file("$buildDir/customJacocoReportDir")
+}
+
+jacocoTestReport {
+	reports {
+		xml.enabled false
+		csv.enabled false
+		html.enabled true
+		html.destination file("${buildDir}/coverage")
+	}
+}
+
+tasks.withType(Test) {
+    // Code Coverage
+    jacoco {
+        //append = true
+        destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
+        classDumpDir = file("$buildDir/jacoco/classpathdumps")
+    }
+    
+    reports.html.enabled = true
+    ext.useDefaultListeners = true
+    ext.workingDirectory = 'build/'
+}
+
+task daoTests(type: Test) {
+	useTestNG {
+		includeGroups 'daoTests'
+	}
+}
+
+task serviceTests(type: Test, dependsOn: daoTests) {
+	useTestNG {
+		includeGroups 'serviceTests'
+	}
+}
+
+task appTests(type: Test, dependsOn: serviceTests) {
+	useTestNG {
+		includeGroups 'appTests'
+	}
+}
+
+task testReport(type: TestReport) {
+	destinationDir = file("$buildDir/reports/all-tests")
+	reportOn daoTests, serviceTests, appTests
+}
+
+test.dependsOn appTests, testReport
+
+
+
